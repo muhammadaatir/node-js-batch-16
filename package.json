@@ -1,0 +1,24 @@
+{
+  "name": "node-batch-16",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/muhammadaatir/node-js-batch-16#readme",
+  "bugs": {
+    "url": "https://github.com/muhammadaatir/node-js-batch-16/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muhammadaatir/node-js-batch-16.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "nodemon": "^3.1.11"
+  }
+}
