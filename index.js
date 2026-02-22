@@ -1,17 +1,35 @@
 import express from "express";
 
 const app = express();
+app.use(express.json());
+let data = [];
+console.log("testing");
 
 app.get("/", (req, res) => {
-    res.send("Hello World")
+    res.send(new Date().toString())
 })
 
-app.get("/posts", (req, res) => {
-    res.send([{name: "Hello World", class: "Smit batch 16"}])
+app.get("/users", (req, res) => {
+    res.send(data)
 })
 
 app.post("/data", (req, res) => {
-    res.send("Post request done")
+    try {
+        data.push({...req.body[0], id: Date.now().toString(36)})
+        console.log(Date.now().toString(36));
+        res.send("User Successfully added")
+    } catch (err) {
+        console.error(err);
+    }
+})
+
+app.delete("/user/:id", (req, res) => {
+    console.log(req.params.id);
+    const {id} = req.params
+    data = data.filter(obj => obj.id !== id)
+    console.log(data);
+    
+    res.send({message: "User deleted successfully"})
 })
 
 app.listen(3000, () => {
