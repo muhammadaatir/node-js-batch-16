@@ -1,11 +1,19 @@
 import express from "express";
 import { dataSchema } from "./schema/index.js";
 import router from "./routes/index.js";
+import mongoose from "./db/index.js";
 
 const app = express();
 app.use(express.json());
-
 app.use("/api", router)
+
+mongoose.connection.on("open", () => {
+    console.log("DB connected")
+})
+
+mongoose.connection.on("error", (err) => {
+    console.log("DB error occured", err)
+})
 
 // app.use("/user-update", (req, res, next) => {
 //     console.log("Middleware");
