@@ -1,5 +1,7 @@
 import User from "../../model/index.js"
 import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken"
+import "dotenv/config"
 
 const loginUser = async (req, res) => {
     try {
@@ -8,7 +10,8 @@ const loginUser = async (req, res) => {
         if(user) {
             const checkPassword = bcrypt.compareSync(password, user.password);
             if(checkPassword) {
-                res.send({ status: 200, message: "User logged in succesfully" })
+                const token = jwt.sign({email: user.email}, process.env.JWT_SECRET)
+                res.send({ status: 200, message: "User logged in succesfully", token })
             } else {
                 res.send({ status: 401, message: "Incorrect password" })
             }

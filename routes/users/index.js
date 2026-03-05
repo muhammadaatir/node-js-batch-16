@@ -4,10 +4,11 @@ import getUser from "./get.js";
 import deleteUser from "./delete.js";
 import updateUser from "./update.js";
 import loginUser from "./login.js";
+import tokenVerification from "../../config/tokenVerification.js";
 
 const userRouter = express.Router();
 
-userRouter.get("/", getUser)
+userRouter.get("/", tokenVerification, getUser)
 userRouter.post("/", postUser)
 userRouter.post("/login", loginUser)
 userRouter.delete("/:id", deleteUser)
