@@ -2,10 +2,14 @@ import express from "express";
 import { dataSchema } from "./schema/index.js";
 import router from "./routes/index.js";
 import mongoose from "./db/index.js";
+import helmet from "helmet";
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
 app.use("/api", router)
+app.use(helmet());
+app.use(cors())
 
 mongoose.connection.on("open", () => {
     console.log("DB connected")
@@ -25,9 +29,9 @@ mongoose.connection.on("error", (err) => {
 // let data = [];
 // console.log("testing");
 
-// app.get("/", (req, res) => {
-//     res.send(new Date().toString())
-// })
+app.get("/", (req, res) => {
+    res.send(new Date().toString())
+})
 
 // app.get("/users", (req, res) => {
 //     try {
