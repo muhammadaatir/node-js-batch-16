@@ -4,6 +4,7 @@ import router from "./routes/index.js";
 import mongoose from "./db/index.js";
 import helmet from "helmet";
 import cors from "cors";
+import 'dotenv/config.js'
 
 const app = express();
 app.use(express.json());
@@ -68,7 +69,6 @@ app.get("/", (req, res) => {
 //     res.send({ user: req.body[0], message: "User succesfully updated" })
 // })
 
-app.listen(3000, () => {
-    console.log("Test");
-    console.log("Server is running on 3000");
+app.listen(process.env.PORT, () => {
+    console.log(`Server is running on port ${process.env.PORT}`);
 })
