@@ -1,11 +1,13 @@
 import express from "express";
+import multer from "multer";
 import { dataSchema } from "./schema/index.js";
 import router from "./routes/index.js";
 import mongoose from "./db/index.js";
 import helmet from "helmet";
 import cors from "cors";
-import 'dotenv/config.js'
+import 'dotenv/config.js';
 
+const upload = multer({ dest: './public/uploads/' })
 const app = express();
 app.use(express.json());
 app.use("/api", router)
