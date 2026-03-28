@@ -6,6 +6,9 @@ import mongoose from "./db/index.js";
 import helmet from "helmet";
 import cors from "cors";
 import 'dotenv/config.js';
+import redis from "redis";
+import http from "http"
+import { Server } from "socket.io";
 
 const upload = multer({ dest: './public/uploads/' })
 const app = express();
@@ -13,6 +16,21 @@ app.use(express.json());
 app.use("/api", router)
 app.use(helmet());
 app.use(cors())
+const server = http.createServer(app)
+const io = new Server(server)
+
+io.on("connection", (socket) => {
+    console.log("User connected", socket)
+
+    socket.on("disconnect", () => {
+        console.log("User dissconnted")
+    })
+})
+
+// const client = redis.createClient();
+// client.on('error', err => console.log('Redis Client Error', err));
+
+// await client.connect();
 
 mongoose.connection.on("open", () => {
     console.log("DB connected")
@@ -71,6 +89,6 @@ app.get("/", (req, res) => {
 //     res.send({ user: req.body[0], message: "User succesfully updated" })
 // })
 
-app.listen(process.env.PORT, () => {
+server.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);
 })
