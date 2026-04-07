@@ -9,23 +9,28 @@ import 'dotenv/config.js';
 import redis from "redis";
 import http from "http"
 import { Server } from "socket.io";
+import { initializeSocket } from "./socket/index.js";
 
 const upload = multer({ dest: './public/uploads/' })
 const app = express();
 app.use(express.json());
+app.use(express.static('public')); // Serve static files
 app.use("/api", router)
 app.use(helmet());
 app.use(cors())
 const server = http.createServer(app)
-const io = new Server(server)
-
-io.on("connection", (socket) => {
-    console.log("User connected", socket)
-
-    socket.on("disconnect", () => {
-        console.log("User dissconnted")
-    })
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
 })
+
+// Initialize all socket handlers
+initializeSocket(io);
+
+// Make io available globally for broadcasting
+global.io = io;
 
 // const client = redis.createClient();
 // client.on('error', err => console.log('Redis Client Error', err));

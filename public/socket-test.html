@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Chat & Real-time Updates Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f0f0; }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { margin-bottom: 15px; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        input, button { padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; cursor: pointer; border: none; }
+        button:hover { background: #0056b3; }
+        .messages, .users, .updates { max-height: 400px; overflow-y: auto; background: #f9f9f9; padding: 10px; border-radius: 4px; margin-top: 10px; }
+        .message, .user-item, .update-item { padding: 10px; margin: 5px 0; background: white; border-left: 4px solid #007bff; border-radius: 2px; }
+        .message { border-left-color: #28a745; }
+        .user-item { border-left-color: #ffc107; }
+        .update-item { border-left-color: #17a2b8; }
+        .timestamp { font-size: 12px; color: #999; margin-top: 5px; }
+        .status { padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .typing { font-style: italic; color: #999; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CHAT SECTION -->
+        <div class="section">
+            <h2>💬 Live Chat</h2>
+            <div id="chatStatus" class="status disconnected">Disconnected</div>
+            
+            <div>
+                <input type="text" id="userName" placeholder="Enter your name" />
+                <button onclick="joinChat()">Join Chat</button>
+            </div>
+
+            <div class="messages" id="messages"></div>
+
+            <div id="typingIndicator" class="typing"></div>
+
+            <div style="margin-top: 10px;">
+                <input type="text" id="messageInput" placeholder="Type message..." />
+                <button onclick="sendMessage()">Send Message</button>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <h4>Active Users:</h4>
+                <div class="users" id="users">No users connected</div>
+            </div>
+        </div>
+
+        <!-- REAL-TIME UPDATES SECTION -->
+        <div class="section">
+            <h2>🔄 Real-time Data Updates</h2>
+            <div id="updateStatus" class="status disconnected">Disconnected</div>
+
+            <div style="margin-bottom: 15px;">
+                <button onclick="subscribeToUsers()">Subscribe to Users Updates</button>
+                <button onclick="subscribeToPostsUpdates()">Subscribe to Posts Updates</button>
+            </div>
+
+            <div class="updates" id="updates">No updates received</div>
+
+            <div style="margin-top: 15px; font-size: 12px; color: #666;">
+                <p>📊 Connected Clients: <span id="connectedCount">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:3000');
+
+        // ===== CHAT FUNCTIONALITY =====
+        socket.on('connect', () => {
+            console.log('✅ Connected to server');
+            updateChatStatus(true);
+            updateUpdateStatus(true);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ Disconnected from server');
+            updateChatStatus(false);
+            updateUpdateStatus(false);
+        });
+
+        function joinChat() {
+            const name = document.getElementById('userName').value.trim();
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+            socket.emit('user:join', { name: name, id: Date.now() });
+            document.getElementById('userName').disabled = true;
+            console.log(`👤 Joining as: ${name}`);
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text) {
+                alert('Please type a message');
+                return;
+            }
+
+            socket.emit('message:send', { text: text });
+            input.value = '';
+        }
+
+        socket.on('message:received', (message) => {
+            const messagesDiv = document.getElementById('messages');
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message';
+            msgEl.innerHTML = `
+                <strong>${message.senderName}:</strong> ${message.text}
+                <div class="timestamp">${new Date(message.timestamp).toLocaleTimeString()}</div>
+            `;
+            messagesDiv.appendChild(msgEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        socket.on('chat:history', (history) => {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            history.forEach(msg => {
+                const msgEl = document.createElement('div');
+                msgEl.className = 'message';
+                msgEl.innerHTML = `
+                    <strong>${msg.senderName}:</strong> ${msg.text}
+                    <div class="timestamp">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+                `;
+                messagesDiv.appendChild(msgEl);
+            });
+            if (history.length > 0) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        });
+
+        socket.on('users:updated', (users) => {
+            const usersDiv = document.getElementById('users');
+            if (users.length === 0) {
+                usersDiv.innerHTML = 'No users connected';
+                return;
+            }
+            usersDiv.innerHTML = '';
+            users.forEach(user => {
+                const userEl = document.createElement('div');
+                userEl.className = 'user-item';
+                userEl.innerHTML = `
+                    <strong>${user.name}</strong>
+                    <div class="timestamp">Joined: ${new Date(user.joinedAt).toLocaleTimeString()}</div>
+                `;
+                usersDiv.appendChild(userEl);
+            });
+        });
+
+        socket.on('user:typing', (data) => {
+            const indicator = document.getElementById('typingIndicator');
+            if (data.isTyping) {
+                indicator.textContent = `${data.userName} is typing...`;
+            } else {
+                indicator.textContent = '';
+            }
+        });
+
+        let typingTimeout;
+        document.getElementById('messageInput').addEventListener('input', (e) => {
+            socket.emit('message:typing', { isTyping: true });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                socket.emit('message:typing', { isTyping: false });
+            }, 1000);
+        });
+
+        // ===== REAL-TIME UPDATES FUNCTIONALITY =====
+        function subscribeToUsers() {
+            socket.emit('subscribe:users');
+            console.log('📡 Subscribed to user updates');
+        }
+
+        function subscribeToPostsUpdates() {
+            socket.emit('subscribe:posts');
+            console.log('📡 Subscribed to post updates');
+        }
+
+        socket.on('update:users', (data) => {
+            const updatesDiv = document.getElementById('updates');
+            const updateEl = document.createElement('div');
+            updateEl.className = 'update-item';
+            updateEl.innerHTML = `
+                <strong>📤 Users ${data.action.toUpperCase()}</strong>
+                <p>Count: ${Array.isArray(data.users) ? data.users.length : 'N/A'}</p>
+                <div class="timestamp">${new Date(data.timestamp).toLocaleTimeString()}</div>
+            `;
+            updatesDiv.insertBefore(updateEl, updatesDiv.firstChild);
+            
+            // Keep only last 20 updates
+            while (updatesDiv.children.length > 20) {
+                updatesDiv.removeChild(updatesDiv.lastChild);
+            }
+        });
+
+        socket.on('update:posts', (data) => {
+            const updatesDiv = document.getElementById('updates');
+            const updateEl = document.createElement('div');
+            updateEl.className = 'update-item';
+            updateEl.innerHTML = `
+                <strong>📤 Posts ${data.action.toUpperCase()}</strong>
+                <p>Count: ${Array.isArray(data.posts) ? data.posts.length : 'N/A'}</p>
+                <div class="timestamp">${new Date(data.timestamp).toLocaleTimeString()}</div>
+            `;
+            updatesDiv.insertBefore(updateEl, updatesDiv.firstChild);
+            
+            while (updatesDiv.children.length > 20) {
+                updatesDiv.removeChild(updatesDiv.lastChild);
+            }
+        });
+
+        socket.on('subscribed', (data) => {
+            console.log(`✅ Subscribed to ${data.type} updates`);
+            alert(`Subscribed to ${data.type} updates!`);
+        });
+
+        // ===== UI HELPERS =====
+        function updateChatStatus(connected) {
+            const status = document.getElementById('chatStatus');
+            if (connected) {
+                status.textContent = '🟢 Connected to Chat';
+                status.className = 'status connected';
+            } else {
+                status.textContent = '🔴 Disconnected from Chat';
+                status.className = 'status disconnected';
+            }
+        }
+
+        function updateUpdateStatus(connected) {
+            const status = document.getElementById('updateStatus');
+            if (connected) {
+                status.textContent = '🟢 Connected to Updates';
+                status.className = 'status connected';
+            } else {
+                status.textContent = '🔴 Disconnected from Updates';
+                status.className = 'status disconnected';
+            }
+        }
+
+        // Allow Enter key to send message
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
