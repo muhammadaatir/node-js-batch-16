@@ -10,7 +10,16 @@ import redis from "redis";
 import http from "http"
 import { Server } from "socket.io";
 import { initializeSocket } from "./socket/index.js";
-
+let redisClient;
+(
+    async () => {
+        redisClient = redis.createClient();
+        redisClient.on('error', (error) => {
+            console.log(error)
+        })
+        await redisClient.connect();
+    }
+)();
 const upload = multer({ dest: './public/uploads/' })
 const app = express();
 app.use(express.json());
@@ -59,13 +68,25 @@ app.get("/", (req, res) => {
     res.send(new Date().toString())
 })
 
-// app.get("/users", (req, res) => {
-//     try {
-//         res.send(data)
-//     } catch (err) {
-//         res.status(400).send({ error: err })
-//     }
-// })
+app.get("/data", async (req, res) => {
+    try {
+        // console.log(redisClient.get("numberData"), "test");
+        let cachedData = await redisClient?.get('numberData1')
+        if (cachedData) {
+            return res.json({ data: cachedData })
+        } else {
+
+            let data = 0;
+            for (let i = 0; i < 10000000000; i++) {
+                data += 1;
+            }
+            res.send(data)
+            redisClient.set("numberData1", JSON.stringify(data) )
+        }
+    } catch (err) {
+        res.status(400).send({ error: err })
+    }
+})
 
 // app.post("/data", async (req, res) => {
 //     try {
